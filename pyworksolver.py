@@ -1,4 +1,5 @@
-import itertools,sys,re,math,time,subprocess
+import itertools,sys,re,math,time,subprocess,datetime
+from pprint import pprint
 
 global tic,toc
 
@@ -24,8 +25,15 @@ SUFFIXES = {
     "14":"x 100T"
 }
 
+# Return The Json Values (Useful for If You are Adding Custom Coins / Bills)
+
+try:subprocess.call(f"echo {VALUES} | underscore print | jq",shell=True)
+except ValueError:pprint(VALUES)
 
 
+# Takes in a Number in Scientific Notation, and will break it up into powers of ten,
+# then convert it into Shortened Form if the Provided Suffix is Available.
+# For Example, shorten("7.64e+6") will return "7.64 B"
 def shorten(num):
     power=re.sub(r".*\+","",str(num))
     actnum=re.sub(r"e.*","",str(num))
@@ -36,9 +44,14 @@ def shorten(num):
         if power in list([k for k in SUFFIXES.keys()]):return f"{actnum} {SUFFIXES[str(power)]}"
         return "{:,}".format(int(int(re.sub(r"\..*","",str(actnum)))*math.pow(10,int(power[0::]))))
 
+
+# Count the amount of times that "x" appears in list "lst"
 def countX(lst, x):return lst.count(x)
 
 
+
+# Return Whether or Not Two Lists are the Same.
+# For example, equal_ignore_order([1,2,3,4,5],[5,1,4,2,3]) will return True
 def equal_ignore_order(a, b):
     unmatched=list(b)
     for element in a:
@@ -47,37 +60,36 @@ def equal_ignore_order(a, b):
     return not unmatched
 
 
-def change(amt, req=False):
+def change(amt,req=False,maximum=100000):
     lstf = []
     if not req:
         amtpen = re.sub(r"\..*", "", str(amt))
+
+        # This For Loop ranges from two up until the first system argument plus amt without the decimal point because
+        # for some reason itertools doesn't understand that you can have just one thing in a combination, which gets added
+        # with the line that has "for ps6..."
         for x in range(2, int(amtpen) + int(sys.argv[1])):
             lst2itr=["Penny", "Nickel", "Dime", "Quarter"]
             [lst2itr.append(str(asd2)) for asd2 in list([asd for asd in [1,5,10,20,50,100] if asd < amt])]
 
+            # Generates all the combinations with itertools, and returns it to the user.
             print(f"Working on Combinations with Length {x}")
             tic = time.perf_counter()
             lstcombs = list([list(g) for g in list(itertools.product(lst2itr,repeat=x))])
             for ps6 in ["Penny", "Nickel", "Dime", "Quarter",1,5,10,20,50,100]:lstcombs.append([str(ps6)])
             toc = time.perf_counter()
-            print(f"Finished Generating",shorten("{:.2e}".format(len(lstcombs))),f"Combinations for Length {x} in {toc - tic:0.4f}s")
+
+            timeinsec = float(f"{toc - tic:0.4f}")
+            if timeinsec > 60:time2=f"{datetime.timedelta(seconds=timeinsec)}"
+            else:time2=f"{toc - tic:0.4f}s"
+
+            print(f"Finished Generating",shorten("{:.2e}".format(len(lstcombs))),f"Combinations for Length {x} in {time2}")
+
             itmsumlist = []
+            # Converts the Coins (Called their actual names) to their corresponding value in the dictionary
             for itml in lstcombs:
                 numf = 0
-                for rng in range(len(itml)):
-                    if itml[rng] == "Penny":
-                        numf += 0.01
-                        continue
-                    elif itml[rng] == "Nickel":
-                        numf += 0.05
-                        continue
-                    elif itml[rng] == "Dime":
-                        numf += 0.1
-                        continue
-                    elif itml[rng] == "Quarter":
-                        numf += 0.25
-                        continue
-                    numf += int(itml[rng])
+                for rng2 in range(len(itml)):numf += VALUES[str(itml[rng2])] if itml[rng2] in list([k1 for k1 in VALUES.keys()]) else int(itml[rng2])
                 itmsumlist.append(numf)
 
 
@@ -99,7 +111,12 @@ def change(amt, req=False):
                         lstf.append(lstcombs[sm])
                         print(f"\n[DEV]Found Combination {lstcombs[sm]}\n")
             toc = time.perf_counter()
-            print(f"Determined Combatible Combinations for Length {x} in {toc - tic:0.4f}s")
+
+            timeinsec = float(f"{toc - tic:0.4f}")
+            if timeinsec > 60:print(f"Determined Combatible Combinations for Length {x} in {datetime.timedelta(seconds=timeinsec)}")
+            else:print(f"Determined Combatible Combinations for Length {x} in {toc - tic:0.4f}s")
+            if len(lstf)==maximum:
+                break
 
 
 
@@ -119,12 +136,17 @@ def change(amt, req=False):
         print("\n")
 
 inthere=False
+intheremax=False
 for gg in range(len(sys.argv)):
-    gg=str(sys.argv[gg])
-    if "amt" in gg:
+    gg2=str(sys.argv[gg])
+    if "amt:" in gg2:
         inthere=True
-        break
-    else:
-        inthere=False
-if inthere:change(float(re.sub(r".*\:","",gg)), req=False)
-else:change(5,req=False)
+        amt2use=float(re.sub(r".*\:","",str(sys.argv[gg])))
+    elif "max:" in gg2:
+        intheremax=True
+        max2use=int(re.sub(r"[^1-9]*","",str(sys.argv[gg])))
+
+amt1=amt2use if inthere else 5
+max2usev=max2use if intheremax else 100000
+
+change(amt1,maximum=max2usev,req=False)
