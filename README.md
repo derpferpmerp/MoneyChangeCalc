@@ -5,10 +5,20 @@ The Second Value is the amount added onto the rounded down number that you suppl
 
 For example:
 
-`python3 pyworksolver.py 6 -p amt:4.5`
+`python3 pyworksolver.py 6 -p amt:4.5 max:3`
 
 Would be running pyworksolver, with a maximum amount of 10 combinations, output the percent (-p, exclude if you want for performance), and
-the total to sum to of 4.5
+the total to sum to of 4.5, with a maximum of 3 combinations until exiting
+
+PARAMS:
+```json
+{
+  "Extra Nums":"Fixed First Param, Required",
+  "-p":"Show Percent Done, might cause worse performance (+/- 0.1% second delay),
+  "amt:NUM":"Sum up to Number NUM, if not supplied will default to 5",
+  "max:VAL":"Allow up to VAL number of combinations to be calculated before exiting"
+}
+```
 
 Running that command will output:
 ```
